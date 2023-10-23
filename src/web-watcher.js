@@ -4,17 +4,17 @@ const { WebSocketServer } = require("ws");
 const fs = require("node:fs");
 const path = require("node:path");
 
-class WsDevWeb {
+class WebWatcher {
   onSend = new Subject();
 
+  #refreshHandler = (cur, prev) => {
+    if (cur.ctimeMs !== prev.ctimeMs) {
+      this.onSend.next("refresh");
+    }
+  };
+
   init(port) {
-    const refreshHandler = (cur, prev) => {
-      if (cur.ctimeMs !== prev.ctimeMs) {
-        this.refreshBrowser();
-      }
-    };
-    fs.watchFile(path.join(__dirname, "public", "index.html"), refreshHandler);
-    fs.watchFile(path.join(__dirname, "public", "script.js"), refreshHandler);
+    this.watchChange(path.join(process.cwd(), "public"));
 
     const wsServer = new WebSocketServer({
       port,
@@ -34,8 +34,23 @@ class WsDevWeb {
       .subscribe();
   }
 
-  refreshBrowser() {
-    this.onSend.next("refresh");
+  /**
+   *
+   * @param {import("node:fs").PathLike} pathLike
+   */
+  watchChange(pathLike) {
+    fs.readdir(pathLike, { recursive: true }, (err, files) => {
+      for (const file of files) {
+        if (path.parse(file).ext === "") {
+          this.watchChange(path.join(pathLike, file));
+        } else {
+          const filePath = path.join(pathLike, file);
+          console.log("watching", filePath.toString());
+
+          const ref = fs.watchFile(filePath, this.#refreshHandler);
+        }
+      }
+    });
   }
 
   /**
@@ -65,4 +80,4 @@ class WsDevWeb {
   }
 }
 
-module.exports = WsDevWeb;
+module.exports = WebWatcher;
