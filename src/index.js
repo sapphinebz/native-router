@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "index.html"));
 });
 
-const scripts = ["ws-dev-script.js", "script.js", "router.js"];
+const scripts = ["client-web-watcher.js", "script.js", "router.js"];
 
 for (const sct of scripts) {
   app.get(`/${sct}`, (req, res) => {
